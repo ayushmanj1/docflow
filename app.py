@@ -29,6 +29,25 @@ from converters import pdf_to_word, word_to_pdf, pdf_to_image, image_to_pdf, off
 app = Flask(__name__)
 CORS(app)  # Allow frontend on any origin to call the API
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    # Flexible Content Security Policy (CSP) allowing our specific CDNs and self-origin
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self';"
+    )
+    # HSTS header (1 year, includes subdomains)
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 import tempfile
 
 # Config
