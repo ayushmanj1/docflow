@@ -1,0 +1,6 @@
+outputs/
+dummy.pdf
+dummy.docx
+test_output.docx
+__pycache__/
+*.pyc

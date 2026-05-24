@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocFlow — Fix what AI breaks.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.min.js"></script>
+
+<style>
+:root {
+  --bg-pure: #000000;
+  --bg-card: #080808;
+  --bg-featured: #060e0f;
+  --border-base: #1a1a1a;
+  --border-hover: #333333;
+  --border-featured: #0e2a2e;
+  --text-white: #ffffff;
+  --text-body: #cccccc;
+  --text-muted: #aaaaaa;
+  --text-hint: #888888;
+  --accent-cyan: #00d4ff;
+  --accent-cyan-dark: #00a8cc;
+  --accent-success: #34d399;
+  --accent-danger: #e05555;
+  --font-main: 'Inter', -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-main); font-weight: 400; }
+body { background-color: var(--bg-pure); color: var(--text-body); font-size: 13px; line-height: 1.6; -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s; }
+
+body.light-mode {
+  --bg-pure: #ffffff;
+  --bg-card: #f5f6f8;
+  --bg-featured: #edf7f9;
+  --border-base: #e0e3e8;
+  --border-hover: #c8ccd2;
+  --border-featured: #c0e8ef;
+  --text-white: #111827;
+  --text-body: #374151;
+  --text-muted: #6b7280;
+  --text-hint: #9ca3af;
+  --accent-cyan: #0891b2;
+  --accent-cyan-dark: #0e7490;
+  --accent-success: #059669;
+  --accent-danger: #dc2626;
+}
+body.light-mode .navbar { border-bottom-color: var(--border-base); }
+body.light-mode .hero { border-bottom-color: var(--border-base); }
+body.light-mode .tab-bar-wrap { border-bottom-color: var(--border-base); }
+body.light-mode .input-field, body.light-mode .textarea-mock { background: #ffffff; border-color: var(--border-base); }
+body.light-mode .drop-zone { background: #f8f9fa; border-color: var(--border-base); }
+body.light-mode .logo-white { color: #111827; }
+body.light-mode .tag-pill { background: #edf0f4; border-color: var(--border-base); color: var(--text-muted); }
+body.light-mode .file-item { background: #f8f9fa; border-color: var(--border-base); }
+body.light-mode .scan-chip { background: #f0f1f4; }
+body.light-mode .fixer-sub-tab { background: #edf0f4 !important; border-color: var(--border-base) !important; }
+body.light-mode .fixer-sub-tab.active { background: #ffffff !important; border-color: #c8ccd2 !important; color: #111827 !important; }
+body.light-mode .btn-sec { border-color: var(--border-base) !important; }
+body.light-mode .btn-sec:hover { border-color: var(--border-hover) !important; }
+body.light-mode .trust-badge i { color: #9ca3af; }
+body.light-mode .convert-card { background: var(--bg-card); border-color: var(--border-base); }
+body.light-mode .convert-card:hover { border-color: var(--border-hover); }
+body.light-mode .stat-card { background: var(--bg-card); border-color: var(--border-base); }
+body.light-mode .panel-box { background: var(--bg-card); border-color: var(--border-base); }
+body.light-mode .back-btn { color: var(--text-hint); }
+body.light-mode .back-btn:hover { color: var(--text-white); }
+body.light-mode .chip-cyan { color: #0891b2; background: #ecfeff; border-color: #cff0f4; }
+body.light-mode .chip-green { color: #059669; background: #ecfdf5; border-color: #d1fae5; }
+body.light-mode .chip-orange { color: #d97706; background: #fffbeb; border-color: #fde68a; }
+body.light-mode .chip-violet { color: #7c3aed; background: #f5f3ff; border-color: #e0d4fc; }
+body.light-mode .chip-yellow { color: #ca8a04; background: #fefce8; border-color: #fef08a; }
+body.light-mode .chip-pink { color: #db2777; background: #fdf2f8; border-color: #fce7f3; }
+body.light-mode .chip-red { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+body.light-mode .chip-blue { color: #2563eb; background: #eff6ff; border-color: #bfdbfe; }
+body.light-mode .chip-teal { color: #0d9488; background: #f0fdfa; border-color: #ccfbf1; }
+body.light-mode .badge-featured { background: #ecfeff; border-color: #cff0f4; color: #0e7490; }
+body.light-mode .fixer-sub-tabs { border-bottom-color: var(--border-base); }
+
+h1, h2, h3, h4, strong { font-weight: 500; }
+a { text-decoration: none; color: inherit; }
+button { border: none; cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; outline: none; }
+
+/* NAVBAR */
+.navbar { background: var(--bg-pure); border-bottom: 0.5px solid var(--border-base); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+.logo { font-size: 20px; font-weight: 500; letter-spacing: -0.5px; }
+.logo-cyan { color: var(--accent-cyan); font-weight: 500; }
+.logo-white { color: var(--text-white); font-weight: 500; }
+.nav-right { display: flex; align-items: center; gap: 24px; }
+.nav-links { color: var(--text-muted); font-size: 12px; display: flex; gap: 16px; }
+.free-pill { background: #0a0a0a; border: 0.5px solid #2a2a2a; color: var(--text-muted); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+
+/* HERO */
+.hero { background: var(--bg-pure); border-bottom: 0.5px solid var(--border-base); padding: 44px 24px 36px; text-align: center; }
+.tag-pill { display: inline-block; background: #0a0a0a; border: 0.5px solid #2a2a2a; color: var(--text-muted); border-radius: 20px; padding: 4px 12px; font-size: 12px; margin-bottom: 24px; }
+.hero h1 { font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1.15; margin-bottom: 16px; font-family: 'Space Grotesk', sans-serif; }
+.hero h1 .line1 { color: var(--accent-cyan); font-weight: 700; }
+.hero h1 .line2 { color: var(--text-white); font-weight: 700; display: block; }
+.hero-subtext { font-size: 14px; color: var(--text-body); max-width: 500px; margin: 0 auto 32px; font-family: 'Space Grotesk', sans-serif; font-weight: 400; letter-spacing: -0.2px; }
+.cyan-text { color: var(--accent-cyan); }
+.trust-badges { display: flex; justify-content: center; gap: 22px; color: var(--text-hint); font-size: 12px; margin-bottom: 36px; flex-wrap: wrap; }
+.trust-badge { display: flex; align-items: center; gap: 6px; }
+.trust-badge i { color: #666; font-size: 16px; }
+
+/* DROPZONE */
+.drop-zone { border: 0.5px dashed var(--border-hover); border-radius: 12px; background: var(--bg-card); padding: 32px 20px; text-align: center; position: relative; transition: border-color 0.2s; cursor: pointer; }
+.drop-zone:hover { border-color: #444; }
+.drop-zone.dragover { border-color: var(--accent-cyan); }
+.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 32px; color: var(--accent-cyan); margin-bottom: 12px; }
+.drop-zone h3 { color: var(--text-white); font-size: 14px; margin-bottom: 4px; }
+.drop-zone p { color: var(--text-hint); font-size: 12px; margin-bottom: 20px; }
+
+/* BUTTONS — high specificity to avoid reset issues */
+button.btn-pri, .btn-pri {
+  background-color: #00d4ff !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 7px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+button.btn-pri:disabled, .btn-pri:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed;
+}
+
+button.btn-sec, .btn-sec {
+  background-color: transparent !important;
+  border: 0.5px solid var(--border-base) !important;
+  color: var(--text-muted) !important;
+  border-radius: 7px;
+  padding: 9px 22px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+button.btn-sec:hover, .btn-sec:hover { border-color: #444 !important; color: var(--text-body) !important; }
+button.btn-sec:disabled, .btn-sec:disabled { opacity: 0.4 !important; cursor: not-allowed; }
+
+button.btn-dl-ready {
+  background-color: #34d399 !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 7px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* FILE ITEM */
+.file-item { display: flex; align-items: center; gap: 12px; background: #0a0a0a; border: 0.5px solid #1a1a1a; padding: 12px 16px; border-radius: 9px; margin-top: 16px; }
+.file-item-info { flex: 1; text-align: left; }
+.file-item-name { color: var(--text-white); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.file-item-size { color: var(--text-hint); font-size: 11px; }
+.btn-remove { color: var(--text-hint); cursor: pointer; font-size: 16px; background: none !important; border: none !important; padding: 4px !important; }
+.btn-remove:hover { color: var(--accent-danger); }
+
+/* TAB BAR */
+.tab-bar-wrap { background: var(--bg-pure); border-bottom: 0.5px solid var(--border-base); padding: 0 24px; position: sticky; top: 0; z-index: 10; }
+.tab-bar { display: flex; gap: 8px; max-width: 1400px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { font-size: 14px; color: var(--text-hint); display: flex; align-items: center; gap: 6px; padding: 13px 16px; border-bottom: 1.5px solid transparent; white-space: nowrap; background: none !important; cursor: pointer; }
+.tab-btn i { font-size: 16px; }
+.tab-btn:hover { color: var(--text-muted); }
+.tab-btn.active { color: var(--text-white); border-bottom: 1.5px solid var(--accent-cyan); }
+
+/* MAIN */
+.main-content { max-width: 1400px; margin: 32px auto; padding: 0 24px; min-height: 600px; }
+.tool-panel { display: none; }
+.tool-panel.active { display: block; }
+.sub-view { display: none; }
+.sub-view.active { display: block; }
+
+/* GRIDS & CARDS */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 32px; }
+.cards-grid-3x3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+@media(max-width: 768px) { .cards-grid-3x3 { grid-template-columns: repeat(2, 1fr); } }
+@media(max-width: 480px) { .cards-grid-3x3 { grid-template-columns: 1fr; } }
+.card { background: var(--bg-card); border: 0.5px solid var(--border-base); border-radius: 12px; padding: 18px; cursor: pointer; transition: border-color 0.2s; }
+.card:hover { border-color: var(--border-hover); }
+.card-featured { background: var(--bg-featured); border-color: var(--border-featured); }
+.card-featured:hover { border-color: var(--accent-cyan-dark); }
+.icon-chip { width: 36px; height: 36px; border-radius: 9px; border: 0.5px solid; display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 12px; flex-shrink: 0; }
+.chip-cyan { color: #00d4ff; background: #050e10; border-color: #0a2228; }
+.chip-green { color: #34d399; background: #050e09; border-color: #0a2215; }
+.chip-orange { color: #fb923c; background: #100805; border-color: #221508; }
+.chip-violet { color: #a78bfa; background: #0c0510; border-color: #1a0a22; }
+.chip-yellow { color: #fbbf24; background: #100e05; border-color: #221c08; }
+.chip-pink { color: #f472b6; background: #100508; border-color: #220a12; }
+.chip-red { color: #f87171; background: #100505; border-color: #220a0a; }
+.chip-blue { color: #60a5fa; background: #050810; border-color: #0a1522; }
+.chip-teal { color: #2dd4bf; background: #051010; border-color: #0a2222; }
+.card h3 { color: var(--text-white); font-size: 13px; margin-bottom: 4px; }
+.card p { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.badge-featured { display: inline-block; background: #050e10; border: 0.5px solid #0a2228; color: var(--accent-cyan-dark); font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 8px; }
+
+/* CONVERT CARDS with colorful icon chips */
+.convert-card {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  background: var(--bg-card); border: 0.5px solid var(--border-base);
+  border-radius: 9px; cursor: pointer; transition: border-color 0.2s;
+}
+.convert-card:hover { border-color: var(--border-hover); }
+.convert-card .icon-chip { margin-bottom: 0; width: 32px; height: 32px; font-size: 15px; }
+.convert-card-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-white); }
+.convert-card-icon { color: var(--text-hint); font-size: 16px; }
+
+/* PANELS */
+.back-btn { font-size: 12px; color: var(--text-hint); display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; cursor: pointer; background: none !important; border: none !important; }
+.back-btn:hover { color: var(--text-white); }
+.panel-box { background: var(--bg-card); border: 0.5px solid var(--border-base); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+.panel-header { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.panel-header h2 { color: var(--text-white); font-size: 16px; }
+.section-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 8px; display: block; }
+.input-field { background: #040404; border: 0.5px solid #1a1a1a; color: var(--text-body); border-radius: 9px; padding: 10px 12px; font-size: 12px; width: 100%; }
+.input-field:focus { border-color: #333; }
+.action-row { display: flex; gap: 12px; margin-top: 16px; align-items: center; }
+
+/* AI FIXER */
+.fixer-sub-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 0.5px solid #1a1a1a; padding-bottom: 12px; }
+.fixer-sub-tab { background: #050505 !important; border: 0.5px solid #1a1a1a !important; color: var(--text-hint) !important; font-size: 12px; padding: 6px 12px; border-radius: 6px; }
+.fixer-sub-tab.active { background: #0a0a0a !important; border-color: #2a2a2a !important; color: var(--text-white) !important; }
+.textarea-mock { width: 100%; background: #040404; border: 0.5px solid #1a1a1a; border-radius: 9px; padding: 13px; font-size: 12px; color: var(--text-body); line-height: 1.8; min-height: 200px; resize: vertical; margin-bottom: 16px; }
+.textarea-mock:focus { border-color: #333; }
+.scan-chips { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.scan-chip { background: #0a0a0a; border-radius: 7px; padding: 7px 12px; font-size: 11px; border: 0.5px solid; }
+.chip-danger { color: #e05555; border-color: #3a1010; }
+.chip-neutral { color: var(--text-muted); border-color: #2a2a2a; }
+
+/* STATS */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 48px; }
+.stat-card { background: var(--bg-card); border: 0.5px solid var(--border-base); border-radius: 10px; padding: 16px; }
+.stat-num { font-size: 26px; font-weight: 500; color: var(--accent-cyan); margin-bottom: 4px; }
+.stat-label { font-size: 12px; color: var(--text-white); font-weight: 500; margin-bottom: 2px; }
+.stat-desc { font-size: 11px; color: var(--text-hint); line-height: 1.4; }
+
+/* FOOTER & TOAST */
+.footer { background: var(--bg-pure); border-top: 0.5px solid var(--border-base); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; margin-top: 60px; }
+.footer-text { color: var(--text-hint); font-size: 11px; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); border: 0.5px solid var(--border-base); color: var(--text-white); font-size: 12px; padding: 10px 16px; border-radius: 9px; z-index: 100; transform: translateY(150%); transition: transform 0.3s; }
+.toast.show { transform: translateY(0); }
+
+/* ROPE TOGGLE */
+#rope-container {
+  position: fixed; top: 0; right: 16px; width: 3px; height: 60px;
+  background: #333; z-index: 9999; cursor: pointer; transform-origin: top; border-radius: 0 0 3px 3px;
+}
+body.light-mode #rope-container { background: #bbb; }
+#rope-container::after {
+  content: ''; position: absolute; bottom: -10px; left: -9px; width: 20px; height: 20px;
+  background: var(--accent-cyan); border-radius: 50%; box-shadow: 0 2px 8px rgba(0,212,255,0.3);
+}
+
+@keyframes pullRope {
+  0% { height: 60px; }
+  40% { height: 120px; }
+  75% { height: 50px; }
+  100% { height: 60px; }
+}
+.pull-animate {
+  animation: pullRope 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@media (max-width: 768px) { .footer { flex-direction: column; gap: 12px; text-align: center; } .nav-right { display: none; } .trust-badges { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- THEME ROPE -->
+<div id="rope-container" title="Pull to toggle Dark/Light Mode"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><span class="logo-cyan">Doc</span><span class="logo-white">Flow</span></div>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="#" onclick="switchMainTab('convert')">Tools</a>
+      <a href="#" onclick="switchMainTab('utils'); setTimeout(()=>openUtilTool('ai'), 10)">AI Fixer</a>
+      <a href="#" onclick="switchMainTab('edit')">Edit</a>
+      <a href="#" onclick="switchMainTab('organise')">Organise</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero-section">
+  <span class="tag-pill">🚀 Lightning Fast Server-Side Conversions</span>
+  <h1>
+    <span class="line1">Fix what AI breaks.</span>
+    <span class="line2">Convert anything.</span>
+  </h1>
+  <p class="hero-subtext">
+    The only free doc tool that <span class="cyan-text">cleans invisible characters</span>,
+    <span class="cyan-text">detects AI writing</span>, and converts files with pinpoint accuracy.
+  </p>
+  <div class="trust-badges">
+    <div class="trust-badge"><i class="ti ti-shield-check"></i> Files auto-deleted immediately</div>
+    <div class="trust-badge"><i class="ti ti-infinity"></i> Unlimited free</div>
+    <div class="trust-badge"><i class="ti ti-server"></i> Powerful backend processing</div>
+    <div class="trust-badge"><i class="ti ti-user-off"></i> No account</div>
+  </div>
+</section>
+
+<!-- TAB BAR (no Inspect) -->
+<div class="tab-bar-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-target="home" onclick="switchMainTab('home')"><i class="ti ti-home"></i> Overview</button>
+    <button class="tab-btn" data-target="convert" onclick="switchMainTab('convert')"><i class="ti ti-arrows-exchange"></i> Convert</button>
+    <button class="tab-btn" data-target="utils" onclick="switchMainTab('utils')"><i class="ti ti-tools"></i> Utilities</button>
+    <button class="tab-btn" data-target="edit" onclick="switchMainTab('edit')"><i class="ti ti-edit"></i> Edit</button>
+    <button class="tab-btn" data-target="organise" onclick="switchMainTab('organise')"><i class="ti ti-files"></i> Organise</button>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- HOME -->
+  <div class="tool-panel active" id="panel-home">
+    <div class="cards-grid">
+      <div class="card card-featured" onclick="switchMainTab('utils'); setTimeout(()=>openUtilTool('ai'), 10)">
+        <div class="icon-chip chip-cyan"><i class="ti ti-wand"></i></div>
+        <h3>AI text fixer</h3>
+        <p>Remove invisible Unicode characters, detect AI writing patterns.</p>
+        <span class="badge-featured">Only free tool</span>
+      </div>
+      <div class="card" onclick="switchMainTab('convert')">
+        <div class="icon-chip chip-green"><i class="ti ti-arrows-exchange"></i></div>
+        <h3>Doc converter</h3>
+        <p>Convert securely between PDF, DOCX, TXT, HTML, and Markdown.</p>
+      </div>
+      <div class="card" onclick="switchMainTab('utils'); setTimeout(()=>openUtilTool('editor'), 10)">
+        <div class="icon-chip chip-orange"><i class="ti ti-edit"></i></div>
+        <h3>PDF editor</h3>
+        <p>Add text, highlights, and drawings to PDFs directly in browser.</p>
+      </div>
+    </div>
+    <div class="stats-row" style="margin-top:0;">
+      <div class="stat-card"><div class="stat-num">10+</div><div class="stat-label">Format conversions</div><div class="stat-desc">PDF, DOCX, TXT, HTML, Markdown, Images</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Files retained</div><div class="stat-desc">Everything is auto-deleted after download</div></div>
+      <div class="stat-card"><div class="stat-num">∞</div><div class="stat-label">Free usage</div><div class="stat-desc">No limits, no plans, no account ever</div></div>
+    </div>
+  </div>
+
+  <!-- CONVERT (3x3 with colorful icons) -->
+  <div class="tool-panel" id="panel-convert">
+    <div class="sub-view active" id="convert-view-grid">
+      <h2 style="color:var(--text-white); font-size:16px; margin-bottom:16px;">Quick Conversions</h2>
+      <div class="cards-grid">
+        <div class="card" onclick="openSpecificConvert('PDF', 'DOCX', '.pdf')">
+          <div class="icon-chip chip-red"><i class="ti ti-file-type-pdf"></i></div>
+          <h3>PDF to DOCX</h3>
+          <p>Extract text, layouts, and images into an editable Word document.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('DOCX', 'PDF', '.docx,.doc')">
+          <div class="icon-chip chip-blue"><i class="ti ti-file-type-doc"></i></div>
+          <h3>DOCX to PDF</h3>
+          <p>Lock formatting and create a universally readable PDF.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('PDF', 'TXT', '.pdf')">
+          <div class="icon-chip chip-green"><i class="ti ti-file-type-txt"></i></div>
+          <h3>PDF to TXT</h3>
+          <p>Extract pure raw text data without any formatting.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('TXT', 'PDF', '.txt')">
+          <div class="icon-chip chip-orange"><i class="ti ti-file-text"></i></div>
+          <h3>TXT to PDF</h3>
+          <p>Turn raw text files into clean, readable PDFs.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('IMG', 'PDF', '.jpg,.jpeg,.png,.webp')">
+          <div class="icon-chip chip-pink"><i class="ti ti-photo"></i></div>
+          <h3>Image to PDF</h3>
+          <p>Combine multiple images into a single PDF document.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('PDF', 'IMG', '.pdf')">
+          <div class="icon-chip chip-violet"><i class="ti ti-photo-down"></i></div>
+          <h3>PDF to Images</h3>
+          <p>Convert every page of a PDF into high-res images.</p>
+        </div>
+        <div class="card" onclick="openSpecificConvert('HTML', 'PDF', '.html,.htm')">
+          <div class="icon-chip chip-yellow"><i class="ti ti-brand-html5"></i></div>
+          <h3>HTML to PDF</h3>
+          <p>Render offline webpages into perfect PDF prints.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD VIEW -->
+    <div class="sub-view" id="convert-view-upload">
+      <button class="back-btn" onclick="showConvertGrid()"><i class="ti ti-arrow-left"></i> Back to all conversions</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-green" style="margin-bottom:0; width:28px; height:28px; font-size:14px;"><i class="ti ti-arrows-exchange"></i></div>
+          <h2 id="specific-convert-title">Convert File</h2>
+        </div>
+        
+        <div class="drop-zone" id="specific-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px;"></i>
+          <h3 id="specific-convert-prompt">Drop your file here</h3>
+          <p>Files are securely processed and auto-deleted immediately.</p>
+          <input type="file" id="specific-upload">
+        </div>
+
+        <div class="file-item" id="specific-file-item" style="display:none;">
+          <i class="ti ti-file" style="color:var(--text-hint); font-size:20px;"></i>
+          <div class="file-item-info">
+            <div class="file-item-name" id="specific-file-name">filename.pdf</div>
+            <div class="file-item-size" id="specific-file-size">1.2 MB</div>
+          </div>
+          <button class="btn-remove" onclick="removeSpecificFile()"><i class="ti ti-x"></i></button>
+        </div>
+
+        <div class="action-row" id="specific-action-row" style="display:flex;">
+          <button class="btn-sec" id="specific-convert-btn" disabled onclick="runSpecificConversion()"><i class="ti ti-player-play"></i> Start</button>
+          <button class="btn-sec" id="specific-download-btn" disabled onclick="downloadConvertedFile()"><i class="ti ti-download"></i> Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UTILITIES -->
+  <div class="tool-panel" id="panel-utils">
+    <div class="sub-view active" id="utils-view-menu">
+      <div class="cards-grid">
+        <div class="card" onclick="openUtilTool('generic-convert')">
+          <div class="icon-chip chip-green"><i class="ti ti-arrows-exchange"></i></div>
+          <h3>Custom Converter</h3>
+          <p>Manually select formats for any document type.</p>
+        </div>
+        <div class="card card-featured" onclick="openUtilTool('ai')">
+          <div class="icon-chip chip-cyan"><i class="ti ti-wand"></i></div>
+          <h3>AI text fixer</h3>
+          <p>Remove invisible Unicode characters, detect AI writing patterns.</p>
+        </div>
+        <div class="card" onclick="openUtilTool('extra')">
+          <div class="icon-chip chip-yellow"><i class="ti ti-lock"></i></div>
+          <h3>PDF utilities</h3>
+          <p>Compress, rotate, password protect, and unlock.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERIC CONVERT -->
+    <div class="sub-view" id="util-generic-convert">
+      <button class="back-btn" onclick="showUtilsMenu()"><i class="ti ti-arrow-left"></i> Back to Utilities</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-green" style="margin-bottom:0;"><i class="ti ti-arrows-exchange"></i></div>
+          <h2>Custom Converter</h2>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: end; margin-bottom: 20px;">
+          <div>
+            <label class="section-label">Source File</label>
+            <input type="file" class="input-field" id="generic-upload" accept=".pdf,.docx,.txt,.md,.html,.jpg,.png">
+          </div>
+          <div style="padding-bottom: 8px; color: var(--text-hint);"><i class="ti ti-arrow-right"></i></div>
+          <div>
+            <label class="section-label">Convert To</label>
+            <select class="input-field" id="generic-target">
+              <option value="pdf">PDF</option><option value="docx">DOCX</option><option value="txt">TXT</option><option value="images">Images</option>
+            </select>
+          </div>
+        </div>
+        <div class="action-row" style="margin-top:0;">
+          <button class="btn-pri" id="generic-btn" onclick="runGenericConversion()"><i class="ti ti-player-play"></i> Start</button>
+          <button class="btn-sec" id="generic-dl-btn" disabled onclick="downloadConvertedFile()"><i class="ti ti-download"></i> Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI FIXER -->
+    <div class="sub-view" id="util-ai">
+      <button class="back-btn" onclick="showUtilsMenu()"><i class="ti ti-arrow-left"></i> Back to Utilities</button>
+      <div class="panel-box" style="padding:0; overflow:hidden;">
+        <div style="padding: 20px; border-bottom: 0.5px solid var(--border-base);">
+          <div class="panel-header" style="margin-bottom:0;">
+            <div class="icon-chip chip-cyan" style="margin-bottom:0"><i class="ti ti-wand"></i></div>
+            <h2 style="margin:0;">AI text fixer</h2>
+          </div>
+        </div>
+        <div style="padding: 20px;">
+          <div class="fixer-sub-tabs">
+            <button class="fixer-sub-tab active" onclick="switchAITab('cleaner')">Invisible char cleaner</button>
+            <button class="fixer-sub-tab" onclick="switchAITab('detector')">AI writing detector</button>
+            <button class="fixer-sub-tab" onclick="switchAITab('normalizer')">Format normalizer</button>
+          </div>
+          <textarea class="textarea-mock" id="ai-input" placeholder="Paste your text here to scan and fix..."></textarea>
+          <div class="scan-chips" id="ai-results" style="display:none;"></div>
+          <div class="action-row" style="margin-top:0;">
+            <button class="btn-pri" id="ai-scan-btn" onclick="runAIScan()">Scan Text</button>
+            <button class="btn-pri" id="ai-fix-btn" style="display:none;" onclick="applyAIFix()">Fix all issues</button>
+            <button class="btn-sec" onclick="copyAIText()">Copy text</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF EDITOR -->
+    <div class="sub-view" id="util-editor">
+      <button class="back-btn" onclick="showUtilsMenu()"><i class="ti ti-arrow-left"></i> Back to Utilities</button>
+      <div class="panel-box">
+        <div class="panel-header"><div class="icon-chip chip-orange" style="margin-bottom:0;"><i class="ti ti-edit"></i></div><h2>PDF Editor</h2></div>
+        <input type="file" class="input-field" accept=".pdf" style="margin-bottom:16px">
+        <div style="background:#040404; border:0.5px solid #1a1a1a; height: 150px; border-radius: 9px; display:flex; align-items:center; justify-content:center; color:var(--text-hint)">Canvas Editor Loading...</div>
+      </div>
+    </div>
+
+    <!-- MERGE -->
+    <div class="sub-view" id="util-merge">
+      <button class="back-btn" onclick="showUtilsMenu()"><i class="ti ti-arrow-left"></i> Back to Utilities</button>
+      <div class="panel-box">
+        <div class="panel-header"><div class="icon-chip chip-violet" style="margin-bottom:0;"><i class="ti ti-layout-rows"></i></div><h2>Merge PDFs</h2></div>
+        <input type="file" class="input-field" id="merge-upload" accept=".pdf" multiple style="margin-bottom:16px">
+        <div id="merge-list" style="margin-bottom:16px;"></div>
+        <button class="btn-pri" onclick="mergePDFs()">Merge Selected</button>
+      </div>
+    </div>
+
+    <!-- EXTRA UTILS -->
+    <div class="sub-view" id="util-extra">
+      <button class="back-btn" onclick="showUtilsMenu()"><i class="ti ti-arrow-left"></i> Back to Utilities</button>
+      <div class="panel-box">
+        <div class="panel-header"><div class="icon-chip chip-yellow" style="margin-bottom:0;"><i class="ti ti-lock"></i></div><h2>PDF Utilities</h2></div>
+        <input type="file" class="input-field" accept=".pdf" style="margin-bottom:16px">
+        <div class="action-row" style="margin-top:0;">
+          <button class="btn-sec" onclick="showToast('Compressing...')">Compress</button>
+          <button class="btn-sec" onclick="showToast('Protecting...')">Protect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT -->
+  <div class="tool-panel" id="panel-edit">
+    <!-- Grid -->
+    <div class="sub-view active" id="edit-view-menu">
+      <div class="cards-grid">
+        <div class="card" onclick="openEditTool('rotate')">
+          <div class="icon-chip chip-orange"><i class="ti ti-rotate-clockwise"></i></div>
+          <h3>Rotate PDF</h3>
+          <p>Rotate all pages in your PDF document by any angle.</p>
+        </div>
+        <div class="card" onclick="openEditTool('pagenum')">
+          <div class="icon-chip chip-blue"><i class="ti ti-numbers"></i></div>
+          <h3>Add Page Number</h3>
+          <p>Insert page numbers at the position of your choice.</p>
+        </div>
+        <div class="card" onclick="openEditTool('crop')">
+          <div class="icon-chip chip-green"><i class="ti ti-crop"></i></div>
+          <h3>Crop PDF</h3>
+          <p>Trim margins from your PDF pages precisely.</p>
+        </div>
+        <div class="card" onclick="openEditTool('annotate')">
+          <div class="icon-chip chip-violet"><i class="ti ti-edit"></i></div>
+          <h3>Edit PDF</h3>
+          <p>Add text annotations and drawings directly in browser.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROTATE -->
+    <div class="sub-view" id="edit-view-rotate">
+      <button class="back-btn" onclick="showEditMenu()"><i class="ti ti-arrow-left"></i> Back to Edit</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-orange" style="margin-bottom:0"><i class="ti ti-rotate-clockwise"></i></div>
+          <h2>Rotate PDF</h2>
+        </div>
+        <div class="drop-zone" id="rotate-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px"></i>
+          <h3>Drop your PDF here</h3>
+          <p>Upload a PDF to rotate its pages</p>
+          <input type="file" id="rotate-upload" accept=".pdf">
+        </div>
+        <div class="file-item" id="rotate-file-item" style="display:none">
+          <i class="ti ti-file-type-pdf" style="color:var(--text-hint);font-size:20px"></i>
+          <div class="file-item-info">
+            <div class="file-item-name" id="rotate-file-name">—</div>
+            <div class="file-item-size" id="rotate-file-size">—</div>
+          </div>
+          <button class="btn-remove" onclick="clearRotate()"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="margin-top:16px">
+          <label class="section-label">Rotation Angle</label>
+          <select class="input-field" id="rotate-angle" style="margin-bottom:0">
+            <option value="90">90° Clockwise</option>
+            <option value="180">180° (Flip)</option>
+            <option value="270">90° Counter-clockwise</option>
+          </select>
+        </div>
+        <div class="action-row">
+          <button class="btn-pri" id="rotate-btn" disabled onclick="rotatePDF()"><i class="ti ti-rotate-clockwise"></i> Rotate & Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD PAGE NUMBER -->
+    <div class="sub-view" id="edit-view-pagenum">
+      <button class="back-btn" onclick="showEditMenu()"><i class="ti ti-arrow-left"></i> Back to Edit</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-blue" style="margin-bottom:0"><i class="ti ti-numbers"></i></div>
+          <h2>Add Page Numbers</h2>
+        </div>
+        <div class="drop-zone" id="pagenum-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px"></i>
+          <h3>Drop your PDF here</h3>
+          <p>Upload a PDF to add page numbers</p>
+          <input type="file" id="pagenum-upload" accept=".pdf">
+        </div>
+        <div class="file-item" id="pagenum-file-item" style="display:none">
+          <i class="ti ti-file-type-pdf" style="color:var(--text-hint);font-size:20px"></i>
+          <div class="file-item-info">
+            <div class="file-item-name" id="pagenum-file-name">—</div>
+            <div class="file-item-size" id="pagenum-file-size">—</div>
+          </div>
+          <button class="btn-remove" onclick="clearPageNum()"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px">
+          <div>
+            <label class="section-label">Position</label>
+            <select class="input-field" id="pagenum-position">
+              <option value="bottom-center">Bottom Center</option>
+              <option value="bottom-right">Bottom Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="top-center">Top Center</option>
+              <option value="top-right">Top Right</option>
+            </select>
+          </div>
+          <div>
+            <label class="section-label">Start from page</label>
+            <input type="number" class="input-field" id="pagenum-start" value="1" min="1">
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-pri" id="pagenum-btn" disabled onclick="addPageNumbers()"><i class="ti ti-numbers"></i> Add Numbers & Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CROP PDF -->
+    <div class="sub-view" id="edit-view-crop">
+      <button class="back-btn" onclick="showEditMenu()"><i class="ti ti-arrow-left"></i> Back to Edit</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-green" style="margin-bottom:0"><i class="ti ti-crop"></i></div>
+          <h2>Crop PDF</h2>
+        </div>
+        <div class="drop-zone" id="crop-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px"></i>
+          <h3>Drop your PDF here</h3>
+          <p>Upload a PDF to crop its margins</p>
+          <input type="file" id="crop-upload" accept=".pdf">
+        </div>
+        <div class="file-item" id="crop-file-item" style="display:none">
+          <i class="ti ti-file-type-pdf" style="color:var(--text-hint);font-size:20px"></i>
+          <div class="file-item-info">
+            <div class="file-item-name" id="crop-file-name">—</div>
+            <div class="file-item-size" id="crop-file-size">—</div>
+          </div>
+          <button class="btn-remove" onclick="clearCrop()"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="margin-top:16px">
+          <label class="section-label">Crop Margins (points — 1pt ≈ 0.35mm)</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div><label class="section-label">Top</label><input type="number" class="input-field" id="crop-top" value="0" min="0"></div>
+            <div><label class="section-label">Bottom</label><input type="number" class="input-field" id="crop-bottom" value="0" min="0"></div>
+            <div><label class="section-label">Left</label><input type="number" class="input-field" id="crop-left" value="0" min="0"></div>
+            <div><label class="section-label">Right</label><input type="number" class="input-field" id="crop-right" value="0" min="0"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-pri" id="crop-btn" disabled onclick="cropPDF()"><i class="ti ti-crop"></i> Crop & Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNOTATE / EDIT PDF -->
+    <div class="sub-view" id="edit-view-annotate">
+      <button class="back-btn" onclick="showEditMenu()"><i class="ti ti-arrow-left"></i> Back to Edit</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-violet" style="margin-bottom:0"><i class="ti ti-edit"></i></div>
+          <h2>Edit PDF</h2>
+        </div>
+        <div class="drop-zone" id="annotate-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px"></i>
+          <h3>Drop your PDF here</h3>
+          <p>Upload a PDF to add text annotations</p>
+          <input type="file" id="annotate-upload" accept=".pdf">
+        </div>
+        <div id="annotate-editor" style="display:none">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; margin-bottom:12px; align-items:center">
+            <span class="section-label" style="margin:0">Page:</span>
+            <select class="input-field" id="annotate-page-sel" style="width:auto; min-width:60px"></select>
+            <span class="section-label" style="margin:0; margin-left:8px">Text:</span>
+            <input type="text" class="input-field" id="annotate-text" placeholder="Type annotation..." style="flex:1; min-width:140px">
+            <span class="section-label" style="margin:0">Size:</span>
+            <input type="number" class="input-field" id="annotate-size" value="14" min="6" max="72" style="width:60px">
+            <button class="btn-pri" onclick="addAnnotation()" style="white-space:nowrap"><i class="ti ti-plus"></i> Add</button>
+          </div>
+          <div id="annotate-canvas-wrap" style="position:relative; border:0.5px solid var(--border-base); border-radius:9px; overflow:hidden; background:#111; max-height:420px; overflow-y:auto">
+            <canvas id="annotate-canvas"></canvas>
+            <div id="annotate-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none"></div>
+          </div>
+          <div id="annotate-list" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px"></div>
+          <div class="action-row" style="margin-top:16px">
+            <button class="btn-pri" id="annotate-dl-btn" onclick="downloadAnnotated()"><i class="ti ti-download"></i> Download Annotated PDF</button>
+            <button class="btn-sec" onclick="clearAnnotations()"><i class="ti ti-trash"></i> Clear all</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORGANISE -->
+  <div class="tool-panel" id="panel-organise">
+    <!-- Grid -->
+    <div class="sub-view active" id="organise-view-menu">
+      <div class="cards-grid">
+        <div class="card" onclick="openOrganiseTool('merge')">
+          <div class="icon-chip chip-cyan"><i class="ti ti-layout-distribute-vertical"></i></div>
+          <h3>Merge PDF</h3>
+          <p>Combine multiple PDFs into a single document.</p>
+        </div>
+        <div class="card" onclick="openOrganiseTool('split')">
+          <div class="icon-chip chip-yellow"><i class="ti ti-cut"></i></div>
+          <h3>Split PDF</h3>
+          <p>Extract pages or split a PDF into separate files.</p>
+        </div>
+        <div class="card" onclick="openOrganiseTool('scan')">
+          <div class="icon-chip chip-pink"><i class="ti ti-camera"></i></div>
+          <h3>Scan to PDF</h3>
+          <p>Create a PDF from your camera or scanned images.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MERGE -->
+    <div class="sub-view" id="organise-view-merge">
+      <button class="back-btn" onclick="showOrganiseMenu()"><i class="ti ti-arrow-left"></i> Back to Organise</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-cyan" style="margin-bottom:0"><i class="ti ti-layout-distribute-vertical"></i></div>
+          <h2>Merge PDFs</h2>
+        </div>
+        <input type="file" class="input-field" id="org-merge-upload" accept=".pdf" multiple style="margin-bottom:16px">
+        <div id="org-merge-list" style="margin-bottom:16px; display:flex; flex-wrap:wrap; gap:8px"></div>
+        <div class="action-row" style="margin-top:0">
+          <button class="btn-pri" onclick="orgMergePDFs()"><i class="ti ti-layout-distribute-vertical"></i> Merge & Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPLIT -->
+    <div class="sub-view" id="organise-view-split">
+      <button class="back-btn" onclick="showOrganiseMenu()"><i class="ti ti-arrow-left"></i> Back to Organise</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-yellow" style="margin-bottom:0"><i class="ti ti-cut"></i></div>
+          <h2>Split PDF</h2>
+        </div>
+        <div class="drop-zone" id="split-drop">
+          <i class="ti ti-cloud-upload drop-icon" style="font-size:24px"></i>
+          <h3>Drop your PDF here</h3>
+          <p>Upload the PDF you want to split</p>
+          <input type="file" id="split-upload" accept=".pdf">
+        </div>
+        <div class="file-item" id="split-file-item" style="display:none">
+          <i class="ti ti-file-type-pdf" style="color:var(--text-hint);font-size:20px"></i>
+          <div class="file-item-info">
+            <div class="file-item-name" id="split-file-name">—</div>
+            <div class="file-item-size" id="split-file-size">—</div>
+          </div>
+          <button class="btn-remove" onclick="clearSplit()"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="margin-top:16px">
+          <label class="section-label">Split Mode</label>
+          <select class="input-field" id="split-mode" style="margin-bottom:12px" onchange="toggleSplitRange()">
+            <option value="all">Split into individual pages (one file each)</option>
+            <option value="range">Extract a page range into one file</option>
+          </select>
+          <div id="split-range-wrap" style="display:none; gap:12px; align-items:center" class="action-row">
+            <span style="color:var(--text-muted); font-size:12px">Pages</span>
+            <input type="number" class="input-field" id="split-from" placeholder="From" min="1" style="width:80px">
+            <span style="color:var(--text-hint)">to</span>
+            <input type="number" class="input-field" id="split-to" placeholder="To" min="1" style="width:80px">
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-pri" id="split-btn" disabled onclick="splitPDF()"><i class="ti ti-cut"></i> Split & Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCAN TO PDF -->
+    <div class="sub-view" id="organise-view-scan">
+      <button class="back-btn" onclick="showOrganiseMenu()"><i class="ti ti-arrow-left"></i> Back to Organise</button>
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="icon-chip chip-pink" style="margin-bottom:0"><i class="ti ti-camera"></i></div>
+          <h2>Scan to PDF</h2>
+        </div>
+        <div class="drop-zone" id="scan-drop">
+          <i class="ti ti-camera drop-icon" style="font-size:24px"></i>
+          <h3>Capture or select images</h3>
+          <p>Use your camera to scan documents, or select existing images. Multiple images will be combined into one PDF.</p>
+          <input type="file" id="scan-upload" accept="image/*" capture="environment" multiple>
+        </div>
+        <div id="scan-preview-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:16px"></div>
+        <div class="action-row">
+          <button class="btn-pri" id="scan-btn" disabled onclick="scanToPDF()"><i class="ti ti-file-type-pdf"></i> Create PDF</button>
+          <button class="btn-sec" id="scan-clear-btn" style="display:none" onclick="clearScan()"><i class="ti ti-trash"></i> Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div>
+    <div class="logo"><span class="logo-cyan">Doc</span><span class="logo-white">Flow</span></div>
+    <div class="footer-text" style="margin-top:4px">Your files never leave your browser. No accounts. No ads.</div>
+  </div>
+  <div class="footer-text">Built with free open-source libraries</div>
+</footer>
+
+<div class="toast" id="sys-toast">Action completed</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ==========================================================
+// NAVIGATION
+// ==========================================================
+function switchMainTab(targetId) {
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.toggle('active', t.dataset.target === targetId));
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + targetId).classList.add('active');
+  document.getElementById('hero-section').style.display = targetId === 'home' ? 'block' : 'none';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+let activeConvertFrom = '', activeConvertTo = '';
+let currentFile = null, resultBlob = null, resultFilename = 'download';
+
+function openSpecificConvert(from, to, accept) {
+  activeConvertFrom = from; activeConvertTo = to;
+  currentFile = null; resultBlob = null;
+  document.getElementById('convert-view-grid').classList.remove('active');
+  document.getElementById('convert-view-upload').classList.add('active');
+  document.getElementById('specific-convert-title').textContent = `Convert ${from} to ${to}`;
+  document.getElementById('specific-convert-prompt').textContent = `Drop your ${from} file here`;
+  document.getElementById('specific-upload').accept = accept;
+  resetConvertUI();
+}
+function showConvertGrid() {
+  document.getElementById('convert-view-upload').classList.remove('active');
+  document.getElementById('convert-view-grid').classList.add('active');
+}
+function resetConvertUI() {
+  document.getElementById('specific-drop').style.display = 'block';
+  document.getElementById('specific-file-item').style.display = 'none';
+  document.getElementById('specific-action-row').style.display = 'flex';
+  const btn = document.getElementById('specific-convert-btn');
+  btn.style.display = 'inline-flex';
+  btn.disabled = true; btn.className = 'btn-sec'; btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+  const dl = document.getElementById('specific-download-btn');
+  dl.style.display = 'inline-flex';
+  dl.disabled = true; dl.className = 'btn-sec'; dl.innerHTML = '<i class="ti ti-download"></i> Download';
+}
+
+function openUtilTool(toolId) {
+  document.getElementById('utils-view-menu').classList.remove('active');
+  document.getElementById('util-' + toolId).classList.add('active');
+}
+function showUtilsMenu() {
+  document.querySelectorAll('#panel-utils .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('utils-view-menu').classList.add('active');
+}
+
+function showToast(msg, isError=false) {
+  const toast = document.getElementById('sys-toast');
+  toast.textContent = msg;
+  toast.style.borderColor = isError ? '#e05555' : '#00d4ff';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function formatSize(bytes) {
+  if(bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// ==========================================================
+// FILE UPLOAD
+// ==========================================================
+document.getElementById('specific-upload').addEventListener('change', e => {
+  if (e.target.files.length) handleSpecificFile(e.target.files[0]);
+});
+
+function handleSpecificFile(file) {
+  currentFile = file; resultBlob = null;
+  document.getElementById('specific-drop').style.display = 'none';
+  document.getElementById('specific-file-item').style.display = 'flex';
+  document.getElementById('specific-file-name').textContent = file.name;
+  document.getElementById('specific-file-size').textContent = formatSize(file.size);
+  document.getElementById('specific-action-row').style.display = 'flex';
+  const btn = document.getElementById('specific-convert-btn');
+  btn.style.display = 'inline-flex';
+  btn.disabled = false; btn.className = 'btn-pri'; btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+  const dl = document.getElementById('specific-download-btn');
+  dl.style.display = 'inline-flex';
+  dl.disabled = true; dl.className = 'btn-sec'; dl.innerHTML = '<i class="ti ti-download"></i> Download';
+}
+
+function removeSpecificFile() {
+  currentFile = null; resultBlob = null;
+  document.getElementById('specific-upload').value = '';
+  resetConvertUI();
+}
+
+// ==========================================================
+// ROBUST CONVERSION LOGIC (Pure Client-Side)
+// ==========================================================
+// ==========================================================
+// API CONVERSION ROUTING
+// ==========================================================
+function getApiEndpoint(from, to) {
+  if (from === 'PDF' && to === 'DOCX') return '/api/convert/pdf-to-docx';
+  if ((from === 'DOCX' || from === 'DOC') && to === 'PDF') return '/api/convert/docx-to-pdf';
+  if (from === 'PDF' && (to === 'IMG' || to === 'IMAGES')) return '/api/convert/pdf-to-images';
+  if (from === 'IMG' && to === 'PDF') return '/api/convert/image-to-pdf';
+  if ((from === 'XLSX' || from === 'XLS') && to === 'PDF') return '/api/convert/xlsx-to-pdf';
+  if ((from === 'PPTX' || from === 'PPT') && to === 'PDF') return '/api/convert/pptx-to-pdf';
+  if (from === 'TXT' && to === 'PDF') return '/api/convert/txt-to-pdf';
+  if (from === 'PDF' && to === 'TXT') return '/api/convert/pdf-to-txt';
+  if ((from === 'DOCX' || from === 'DOC') && to === 'TXT') return '/api/convert/docx-to-txt';
+  return null;
+}
+
+function getExpectedExtension(to) {
+  if (to === 'DOCX') return '.docx';
+  if (to === 'PDF') return '.pdf';
+  if (to === 'IMG' || to === 'IMAGES') return '.zip';
+  if (to === 'TXT') return '.txt';
+  return '.bin';
+}
+
+async function performApiConversion(file, from, to, btnId, dlBtnId) {
+  if (!file) return showToast('Please select a file first.', true);
+  
+  const endpoint = getApiEndpoint(from, to);
+
+  const btn = document.getElementById(btnId);
+  const dlBtn = document.getElementById(dlBtnId);
+  
+  btn.disabled = true; 
+  btn.innerHTML = '<i class="ti ti-loader-2"></i> Uploading & Processing...';
+
+  // Fallback for HTML/MD which we handle via client-side libraries
+  if (!endpoint && to === 'PDF' && (from === 'HTML' || from === 'MD')) {
+    try {
+      const text = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsText(file); });
+      const htmlStr = from === 'MD' ? marked.parse(text) : text;
+      
+      const container = document.createElement('div');
+      container.innerHTML = htmlStr;
+      container.style.cssText = 'position:fixed; top:0; left:0; width:800px; padding:30px; background:#fff; color:#000; z-index:-9999; overflow:visible;';
+      document.body.appendChild(container);
+      
+      // Override dark mode
+      container.querySelectorAll('*').forEach(el => el.style.setProperty('color', '#000', 'important'));
+      
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      
+      const opt = { margin: 10, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      document.body.removeChild(container);
+      
+      if (!blob || blob.size === 0) throw new Error("Generated file is empty.");
+      
+      resultBlob = blob;
+      resultFilename = file.name.replace(/\.[^/.]+$/, "") + '.pdf';
+      btn.style.display = 'none';
+      dlBtn.disabled = false; 
+      dlBtn.className = 'btn-dl-ready'; 
+      dlBtn.innerHTML = '<i class="ti ti-download"></i> Download';
+      showToast('Conversion complete!');
+      return;
+    } catch(err) {
+      console.error(err);
+      showToast('Error: ' + err.message, true);
+      btn.disabled = false; btn.className = 'btn-pri'; btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+      return;
+    }
+  }
+
+  if (!endpoint) {
+    return showToast(`Conversion from ${from} to ${to} is not supported yet.`, true);
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Set format for PDF->Images if needed
+    if (to === 'IMG' || to === 'IMAGES') {
+      formData.append('format', 'png');
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      let errorMsg = 'Server error';
+      try {
+        const errData = await response.json();
+        errorMsg = errData.error || errorMsg;
+      } catch (e) {
+        errorMsg = `Server returned ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    const blob = await response.blob();
+    if (!blob || blob.size === 0) throw new Error("Server returned an empty file.");
+
+    const fname = file.name.replace(/\.[^/.]+$/, "");
+    resultBlob = blob;
+    resultFilename = fname + getExpectedExtension(to);
+    
+    btn.style.display = 'none';
+    dlBtn.disabled = false; 
+    dlBtn.className = 'btn-dl-ready'; 
+    dlBtn.innerHTML = '<i class="ti ti-download"></i> Download';
+    showToast('Conversion complete!');
+
+  } catch (err) {
+    console.error("API Error:", err);
+    showToast('Error: ' + err.message, true);
+    btn.disabled = false; 
+    btn.className = 'btn-pri'; 
+    btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+  }
+}
+
+async function runSpecificConversion() {
+  await performApiConversion(
+    currentFile, 
+    activeConvertFrom, 
+    activeConvertTo, 
+    'specific-convert-btn', 
+    'specific-download-btn'
+  );
+}
+
+
+
+function downloadConvertedFile() {
+  if(!resultBlob) return;
+  const url = URL.createObjectURL(resultBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = resultFilename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ==========================================================
+// GENERIC CONVERT
+// ==========================================================
+async function runGenericConversion() {
+  const input = document.getElementById('generic-upload');
+  if(!input.files.length) return showToast('Upload a file first.', true);
+  
+  currentFile = input.files[0];
+  const ext = currentFile.name.split('.').pop().toUpperCase();
+  const target = document.getElementById('generic-target').value.toUpperCase();
+  activeConvertFrom = (ext === 'JPG' || ext === 'JPEG' || ext === 'PNG' || ext === 'WEBP') ? 'IMG' : ext;
+  activeConvertTo = target;
+
+  await performApiConversion(
+    currentFile, 
+    activeConvertFrom, 
+    activeConvertTo, 
+    'generic-btn', 
+    'generic-dl-btn'
+  );
+}
+
+function openUtilTool(toolId) {
+  document.querySelectorAll('#panel-utils .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('util-' + toolId).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showUtilsMenu() {
+  document.querySelectorAll('#panel-utils .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('utils-view-menu').classList.add('active');
+}
+
+// ==========================================================
+// AI TEXT FIXER LOGIC
+// ==========================================================
+let aiActiveTab = 'cleaner';
+function switchAITab(tab) {
+  aiActiveTab = tab;
+  document.querySelectorAll('.fixer-sub-tab').forEach((t, i) => {
+    t.classList.toggle('active', (tab==='cleaner'&&i===0)||(tab==='detector'&&i===1)||(tab==='normalizer'&&i===2));
+  });
+  document.getElementById('ai-results').style.display = 'none';
+  document.getElementById('ai-fix-btn').style.display = 'none';
+  document.getElementById('ai-scan-btn').style.display = 'inline-flex';
+}
+
+function runAIScan() {
+  const text = document.getElementById('ai-input').value;
+  if(!text.trim()) return showToast('Please enter text.', true);
+  const resultsDiv = document.getElementById('ai-results');
+  resultsDiv.innerHTML = ''; resultsDiv.style.display = 'flex';
+
+  if (aiActiveTab === 'cleaner') {
+    const invRegex = /[\u200B-\u200F\uFEFF\u2028\u2029\u00AD\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069]/g;
+    const match = text.match(invRegex);
+    const count = match ? match.length : 0;
+    if (count > 0) {
+      resultsDiv.innerHTML = `<div class="scan-chip chip-danger">${count} invisible char${count>1?'s':''} found</div>`;
+      document.getElementById('ai-scan-btn').style.display = 'none';
+      document.getElementById('ai-fix-btn').style.display = 'inline-flex';
+    } else { resultsDiv.innerHTML = `<div class="scan-chip chip-neutral">No invisible characters found ✓</div>`; }
+  } else if (aiActiveTab === 'detector') {
+    // Extended list of common ChatGPT-isms
+    const aiWords = [
+      'delve','furthermore','tapestry','crucial','multifaceted','utilize','landscape',
+      'realm','foster','leverage','robust','comprehensive','innovative','cutting-edge',
+      'paradigm','testament','beacon','underscore','embark','myriad','intricate',
+      'navigating','unveiling','pivotal','dynamic','seamless','holistic','intricacies',
+      'as an ai','it is important to note','in conclusion','shed light on'
+    ];
+    let flags = 0;
+    const lowerText = text.toLowerCase();
+    aiWords.forEach(w => { 
+      // check whole words for single words, or substrings for phrases
+      if (w.includes(' ')) {
+        if (lowerText.includes(w)) flags += 2;
+      } else {
+        const regex = new RegExp(`\\b${w}\\b`, 'g');
+        const m = lowerText.match(regex);
+        if (m) flags += m.length;
+      }
+    });
+    // Calculate a rough score based on density
+    const wordCount = text.split(/\s+/).length || 1;
+    const score = Math.min(100, Math.round((flags / wordCount) * 1000));
+    
+    resultsDiv.innerHTML = `<div class="scan-chip ${score>30?'chip-danger':'chip-neutral'}">${score}% AI likelihood</div><div class="scan-chip chip-neutral">${flags} AI patterns flagged</div>`;
+    if(flags > 0) { document.getElementById('ai-scan-btn').style.display = 'none'; document.getElementById('ai-fix-btn').style.display = 'inline-flex'; }
+  } else if (aiActiveTab === 'normalizer') {
+    resultsDiv.innerHTML = `<div class="scan-chip chip-neutral">Ready to normalize formats (quotes, spacing, line breaks)</div>`;
+    document.getElementById('ai-scan-btn').style.display = 'none';
+    document.getElementById('ai-fix-btn').style.display = 'inline-flex';
+  }
+}
+
+function applyAIFix() {
+  let text = document.getElementById('ai-input').value;
+  if (aiActiveTab === 'cleaner') {
+    text = text.replace(/[\u200B-\u200F\uFEFF\u2028\u2029\u00AD\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069]/g, '');
+    showToast('Invisible characters removed!');
+  } else if (aiActiveTab === 'detector') {
+    text = text.replace(/\bdelve\b/gi,'explore').replace(/\bfurthermore\b/gi,'also').replace(/\btapestry\b/gi,'mix')
+      .replace(/\bcrucial\b/gi,'important').replace(/\bmultifaceted\b/gi,'complex').replace(/\butilize\b/gi,'use')
+      .replace(/\blandscape\b/gi,'field').replace(/\brealm\b/gi,'area').replace(/\bfoster\b/gi,'encourage')
+      .replace(/\bleverage\b/gi,'use').replace(/\brobust\b/gi,'strong').replace(/\bpivotal\b/gi,'key')
+      .replace(/\bmyriad\b/gi,'many').replace(/\bintricate\b/gi,'complex').replace(/It is important to note that /gi,'')
+      .replace(/As an AI language model, /gi,'').replace(/In conclusion, /gi,'');
+    showToast('AI phrases replaced/removed!');
+  } else if (aiActiveTab === 'normalizer') {
+    text = text.replace(/ {2,}/g, ' ') // excessive spaces
+               .replace(/[\u201C\u201D]/g, '"') // smart quotes
+               .replace(/[\u2018\u2019]/g, "'") // smart single quotes
+               .replace(/\u2014/g, '--') // em-dash
+               .replace(/\u2013/g, '-') // en-dash
+               .replace(/\n{3,}/g, '\n\n'); // triple+ newlines to double
+    showToast('Format normalized!');
+  }
+  document.getElementById('ai-input').value = text;
+  document.getElementById('ai-fix-btn').style.display = 'none';
+  document.getElementById('ai-scan-btn').style.display = 'inline-flex';
+  document.getElementById('ai-results').style.display = 'none';
+}
+
+function copyAIText() {
+  navigator.clipboard.writeText(document.getElementById('ai-input').value);
+  showToast('Copied to clipboard');
+}
+
+// ==========================================================
+// MERGE
+// ==========================================================
+let mergeFilesArr = [];
+document.getElementById('merge-upload').addEventListener('change', e => {
+  for(let f of e.target.files) mergeFilesArr.push(f);
+  const list = document.getElementById('merge-list');
+  list.innerHTML = mergeFilesArr.map(f => `<div style="background:#111; padding:8px; margin-bottom:4px; border-radius:4px; color:#ccc; font-size:12px;">${f.name}</div>`).join('');
+});
+async function mergePDFs() {
+  if(mergeFilesArr.length < 2) return showToast('Select at least 2 PDFs', true);
+  try {
+    const mergedPdf = await PDFLib.PDFDocument.create();
+    for (const file of mergeFilesArr) {
+      const buffer = await file.arrayBuffer();
+      const pdf = await PDFLib.PDFDocument.load(buffer);
+      const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      pages.forEach(p => mergedPdf.addPage(p));
+    }
+    const bytes = await mergedPdf.save();
+    resultBlob = new Blob([bytes], { type: 'application/pdf' });
+    resultFilename = 'merged.pdf';
+    downloadConvertedFile();
+    showToast('PDFs merged!');
+  } catch(e) { showToast('Merge error: ' + e.message, true); }
+}
+// ==========================================================
+// EDIT PANEL NAVIGATION
+// ==========================================================
+function openEditTool(toolId) {
+  document.querySelectorAll('#panel-edit .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('edit-view-' + toolId).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showEditMenu() {
+  document.querySelectorAll('#panel-edit .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('edit-view-menu').classList.add('active');
+}
+
+// ==========================================================
+// ORGANISE PANEL NAVIGATION
+// ==========================================================
+function openOrganiseTool(toolId) {
+  document.querySelectorAll('#panel-organise .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('organise-view-' + toolId).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showOrganiseMenu() {
+  document.querySelectorAll('#panel-organise .sub-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('organise-view-menu').classList.add('active');
+}
+
+// ==========================================================
+// ROTATE PDF
+// ==========================================================
+let rotateFile = null;
+document.getElementById('rotate-upload').addEventListener('change', e => {
+  if (!e.target.files[0]) return;
+  rotateFile = e.target.files[0];
+  document.getElementById('rotate-drop').style.display = 'none';
+  document.getElementById('rotate-file-item').style.display = 'flex';
+  document.getElementById('rotate-file-name').textContent = rotateFile.name;
+  document.getElementById('rotate-file-size').textContent = formatSize(rotateFile.size);
+  document.getElementById('rotate-btn').disabled = false;
+});
+function clearRotate() {
+  rotateFile = null;
+  document.getElementById('rotate-upload').value = '';
+  document.getElementById('rotate-drop').style.display = 'block';
+  document.getElementById('rotate-file-item').style.display = 'none';
+  document.getElementById('rotate-btn').disabled = true;
+}
+async function rotatePDF() {
+  if (!rotateFile) return showToast('Please select a PDF first.', true);
+  const btn = document.getElementById('rotate-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Rotating...';
+  try {
+    const angle = parseInt(document.getElementById('rotate-angle').value);
+    const buffer = await rotateFile.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+    const pages = pdfDoc.getPages();
+    pages.forEach(page => {
+      const current = page.getRotation().angle;
+      page.setRotation(PDFLib.degrees((current + angle) % 360));
+    });
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = rotateFile.name.replace('.pdf','') + '_rotated.pdf';
+    a.click();
+    showToast('PDF rotated & downloaded!');
+  } catch(e) { showToast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-rotate-clockwise"></i> Rotate & Download';
+}
+
+// ==========================================================
+// ADD PAGE NUMBERS
+// ==========================================================
+let pagenumFile = null;
+document.getElementById('pagenum-upload').addEventListener('change', e => {
+  if (!e.target.files[0]) return;
+  pagenumFile = e.target.files[0];
+  document.getElementById('pagenum-drop').style.display = 'none';
+  document.getElementById('pagenum-file-item').style.display = 'flex';
+  document.getElementById('pagenum-file-name').textContent = pagenumFile.name;
+  document.getElementById('pagenum-file-size').textContent = formatSize(pagenumFile.size);
+  document.getElementById('pagenum-btn').disabled = false;
+});
+function clearPageNum() {
+  pagenumFile = null;
+  document.getElementById('pagenum-upload').value = '';
+  document.getElementById('pagenum-drop').style.display = 'block';
+  document.getElementById('pagenum-file-item').style.display = 'none';
+  document.getElementById('pagenum-btn').disabled = true;
+}
+async function addPageNumbers() {
+  if (!pagenumFile) return showToast('Please select a PDF first.', true);
+  const btn = document.getElementById('pagenum-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Processing...';
+  try {
+    const position = document.getElementById('pagenum-position').value;
+    const startFrom = parseInt(document.getElementById('pagenum-start').value) || 1;
+    const buffer = await pagenumFile.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const pages = pdfDoc.getPages();
+    pages.forEach((page, i) => {
+      const { width, height } = page.getSize();
+      const pageNum = i + startFrom;
+      const text = String(pageNum);
+      const fontSize = 10;
+      const textW = font.widthOfTextAtSize(text, fontSize);
+      const margin = 28;
+      let x, y;
+      switch(position) {
+        case 'bottom-center': x = (width - textW) / 2; y = margin; break;
+        case 'bottom-right':  x = width - textW - margin; y = margin; break;
+        case 'bottom-left':   x = margin; y = margin; break;
+        case 'top-center':    x = (width - textW) / 2; y = height - margin; break;
+        case 'top-right':     x = width - textW - margin; y = height - margin; break;
+        default:              x = (width - textW) / 2; y = margin;
+      }
+      page.drawText(text, { x, y, size: fontSize, font, color: PDFLib.rgb(0.1,0.1,0.1) });
+    });
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = pagenumFile.name.replace('.pdf','') + '_numbered.pdf';
+    a.click();
+    showToast('Page numbers added!');
+  } catch(e) { showToast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-numbers"></i> Add Numbers & Download';
+}
+
+// ==========================================================
+// CROP PDF
+// ==========================================================
+let cropFile = null;
+document.getElementById('crop-upload').addEventListener('change', e => {
+  if (!e.target.files[0]) return;
+  cropFile = e.target.files[0];
+  document.getElementById('crop-drop').style.display = 'none';
+  document.getElementById('crop-file-item').style.display = 'flex';
+  document.getElementById('crop-file-name').textContent = cropFile.name;
+  document.getElementById('crop-file-size').textContent = formatSize(cropFile.size);
+  document.getElementById('crop-btn').disabled = false;
+});
+function clearCrop() {
+  cropFile = null;
+  document.getElementById('crop-upload').value = '';
+  document.getElementById('crop-drop').style.display = 'block';
+  document.getElementById('crop-file-item').style.display = 'none';
+  document.getElementById('crop-btn').disabled = true;
+}
+async function cropPDF() {
+  if (!cropFile) return showToast('Please select a PDF first.', true);
+  const btn = document.getElementById('crop-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Cropping...';
+  try {
+    const top    = parseFloat(document.getElementById('crop-top').value)    || 0;
+    const bottom = parseFloat(document.getElementById('crop-bottom').value) || 0;
+    const left   = parseFloat(document.getElementById('crop-left').value)   || 0;
+    const right  = parseFloat(document.getElementById('crop-right').value)  || 0;
+    const buffer = await cropFile.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+    pdfDoc.getPages().forEach(page => {
+      const { width, height } = page.getSize();
+      page.setCropBox(left, bottom, width - left - right, height - top - bottom);
+    });
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = cropFile.name.replace('.pdf','') + '_cropped.pdf';
+    a.click();
+    showToast('PDF cropped & downloaded!');
+  } catch(e) { showToast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-crop"></i> Crop & Download';
+}
+
+// ==========================================================
+// ANNOTATE / EDIT PDF
+// ==========================================================
+let annotateFile = null, annotatePdfDoc = null, annotateCurrentPage = 1, annotateAnnotations = [];
+document.getElementById('annotate-upload').addEventListener('change', async e => {
+  if (!e.target.files[0]) return;
+  annotateFile = e.target.files[0];
+  annotateAnnotations = [];
+  try {
+    const buffer = await annotateFile.arrayBuffer();
+    annotatePdfDoc = await PDFLib.PDFDocument.load(buffer);
+    const numPages = annotatePdfDoc.getPageCount();
+    const sel = document.getElementById('annotate-page-sel');
+    sel.innerHTML = '';
+    for (let i = 1; i <= numPages; i++) {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = `Page ${i}`;
+      sel.appendChild(opt);
+    }
+    document.getElementById('annotate-drop').style.display = 'none';
+    document.getElementById('annotate-editor').style.display = 'block';
+    await renderAnnotatePage(1);
+    showToast('PDF loaded. Add your annotations!');
+  } catch(e) { showToast('Error loading PDF: ' + e.message, true); }
+});
+document.getElementById('annotate-page-sel').addEventListener('change', e => {
+  annotateCurrentPage = parseInt(e.target.value);
+  renderAnnotatePage(annotateCurrentPage);
+});
+async function renderAnnotatePage(pageNum) {
+  const pdfjsDoc = await pdfjsLib.getDocument({data: await annotateFile.arrayBuffer()}).promise;
+  const page = await pdfjsDoc.getPage(pageNum);
+  const viewport = page.getViewport({scale: 1.2});
+  const canvas = document.getElementById('annotate-canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+  renderAnnotateOverlay();
+}
+function renderAnnotateOverlay() {
+  const overlay = document.getElementById('annotate-overlay');
+  const canvas = document.getElementById('annotate-canvas');
+  overlay.innerHTML = '';
+  overlay.style.height = canvas.height + 'px';
+  const pageAnnotations = annotateAnnotations.filter(a => a.page === annotateCurrentPage);
+  pageAnnotations.forEach((a, idx) => {
+    const el = document.createElement('div');
+    el.style.cssText = `position:absolute;left:${a.x}px;top:${a.y}px;color:${a.color||'#00d4ff'};font-size:${a.size}px;font-family:Inter,sans-serif;font-weight:500;cursor:move;user-select:none;text-shadow:0 1px 3px rgba(0,0,0,0.8);white-space:nowrap;pointer-events:auto;`;
+    el.textContent = a.text;
+    makeDraggable(el, a);
+    overlay.appendChild(el);
+  });
+}
+function makeDraggable(el, annotation) {
+  let startX, startY, origX, origY;
+  el.addEventListener('mousedown', e => {
+    startX = e.clientX; startY = e.clientY;
+    origX = annotation.x; origY = annotation.y;
+    function onMove(ev) {
+      annotation.x = origX + (ev.clientX - startX);
+      annotation.y = origY + (ev.clientY - startY);
+      renderAnnotateOverlay();
+    }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+}
+function addAnnotation() {
+  const text = document.getElementById('annotate-text').value.trim();
+  if (!text) return showToast('Please enter annotation text.', true);
+  const size = parseInt(document.getElementById('annotate-size').value) || 14;
+  annotateAnnotations.push({ page: annotateCurrentPage, text, size, x: 40, y: 40, color: '#00d4ff' });
+  document.getElementById('annotate-text').value = '';
+  renderAnnotateOverlay();
+  updateAnnotateList();
+  showToast('Annotation added!');
+}
+function updateAnnotateList() {
+  const list = document.getElementById('annotate-list');
+  list.innerHTML = '';
+  annotateAnnotations.forEach((a, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'scan-chip chip-neutral';
+    chip.innerHTML = `<i class="ti ti-text-size"></i> pg${a.page}: "${a.text.substring(0,20)}${a.text.length>20?'…':''}" <button onclick="removeAnnotation(${i})" style="background:none;border:none;cursor:pointer;color:#e05555;margin-left:4px;font-size:11px"><i class="ti ti-x"></i></button>`;
+    list.appendChild(chip);
+  });
+}
+function removeAnnotation(idx) {
+  annotateAnnotations.splice(idx, 1);
+  renderAnnotateOverlay();
+  updateAnnotateList();
+}
+function clearAnnotations() {
+  annotateAnnotations = [];
+  renderAnnotateOverlay();
+  updateAnnotateList();
+}
+async function downloadAnnotated() {
+  if (!annotatePdfDoc) return showToast('Load a PDF first.', true);
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.load(await annotateFile.arrayBuffer());
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const pages = pdfDoc.getPages();
+    for (const a of annotateAnnotations) {
+      const page = pages[a.page - 1];
+      if (!page) continue;
+      const { height } = page.getSize();
+      const canvas = document.getElementById('annotate-canvas');
+      const scaleY = height / canvas.height;
+      const scaleX = page.getSize().width / canvas.width;
+      const hex = (a.color || '#00d4ff').replace('#','');
+      const r = parseInt(hex.substring(0,2),16)/255;
+      const g = parseInt(hex.substring(2,4),16)/255;
+      const b = parseInt(hex.substring(4,6),16)/255;
+      page.drawText(a.text, {
+        x: a.x * scaleX,
+        y: height - (a.y * scaleY) - (a.size * scaleY),
+        size: a.size,
+        font,
+        color: PDFLib.rgb(r, g, b)
+      });
+    }
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = annotateFile.name.replace('.pdf','') + '_annotated.pdf';
+    link.click();
+    showToast('Annotated PDF downloaded!');
+  } catch(e) { showToast('Error: ' + e.message, true); }
+}
+
+// ==========================================================
+// ORGANISE: MERGE PDFs
+// ==========================================================
+let orgMergeFiles = [];
+document.getElementById('org-merge-upload').addEventListener('change', e => {
+  orgMergeFiles = Array.from(e.target.files);
+  const list = document.getElementById('org-merge-list');
+  list.innerHTML = '';
+  orgMergeFiles.forEach(f => {
+    const chip = document.createElement('div');
+    chip.className = 'scan-chip chip-neutral';
+    chip.innerHTML = `<i class="ti ti-file-type-pdf"></i> ${f.name}`;
+    list.appendChild(chip);
+  });
+});
+async function orgMergePDFs() {
+  if (orgMergeFiles.length < 2) return showToast('Select at least 2 PDFs', true);
+  showToast('Merging PDFs...');
+  try {
+    const mergedPdf = await PDFLib.PDFDocument.create();
+    for (const file of orgMergeFiles) {
+      const buffer = await file.arrayBuffer();
+      const pdf = await PDFLib.PDFDocument.load(buffer);
+      const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      pages.forEach(p => mergedPdf.addPage(p));
+    }
+    const bytes = await mergedPdf.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'merged.pdf';
+    a.click();
+    showToast('PDFs merged & downloaded!');
+  } catch(e) { showToast('Merge error: ' + e.message, true); }
+}
+
+// ==========================================================
+// ORGANISE: SPLIT PDF
+// ==========================================================
+let splitFile = null;
+document.getElementById('split-upload').addEventListener('change', e => {
+  if (!e.target.files[0]) return;
+  splitFile = e.target.files[0];
+  document.getElementById('split-drop').style.display = 'none';
+  document.getElementById('split-file-item').style.display = 'flex';
+  document.getElementById('split-file-name').textContent = splitFile.name;
+  document.getElementById('split-file-size').textContent = formatSize(splitFile.size);
+  document.getElementById('split-btn').disabled = false;
+});
+function clearSplit() {
+  splitFile = null;
+  document.getElementById('split-upload').value = '';
+  document.getElementById('split-drop').style.display = 'block';
+  document.getElementById('split-file-item').style.display = 'none';
+  document.getElementById('split-btn').disabled = true;
+}
+function toggleSplitRange() {
+  const mode = document.getElementById('split-mode').value;
+  document.getElementById('split-range-wrap').style.display = mode === 'range' ? 'flex' : 'none';
+}
+async function splitPDF() {
+  if (!splitFile) return showToast('Please select a PDF first.', true);
+  const btn = document.getElementById('split-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Splitting...';
+  try {
+    const mode = document.getElementById('split-mode').value;
+    const buffer = await splitFile.arrayBuffer();
+    const srcPdf = await PDFLib.PDFDocument.load(buffer);
+    const totalPages = srcPdf.getPageCount();
+    if (mode === 'range') {
+      const from = Math.max(1, parseInt(document.getElementById('split-from').value) || 1) - 1;
+      const to   = Math.min(totalPages, parseInt(document.getElementById('split-to').value) || totalPages) - 1;
+      if (from > to) { showToast('Invalid page range.', true); btn.disabled = false; btn.innerHTML = '<i class="ti ti-cut"></i> Split & Download'; return; }
+      const newPdf = await PDFLib.PDFDocument.create();
+      const pages = await newPdf.copyPages(srcPdf, Array.from({length: to - from + 1}, (_, i) => from + i));
+      pages.forEach(p => newPdf.addPage(p));
+      const bytes = await newPdf.save();
+      const blob = new Blob([bytes], {type:'application/pdf'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `pages_${from+1}-${to+1}.pdf`; a.click();
+      showToast(`Extracted pages ${from+1} to ${to+1}!`);
+    } else {
+      // Split all pages → download as zip
+      const zip = new JSZip();
+      for (let i = 0; i < totalPages; i++) {
+        const newPdf = await PDFLib.PDFDocument.create();
+        const [page] = await newPdf.copyPages(srcPdf, [i]);
+        newPdf.addPage(page);
+        const bytes = await newPdf.save();
+        zip.file(`page_${i+1}.pdf`, bytes);
+      }
+      const zipBlob = await zip.generateAsync({type:'blob'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(zipBlob); a.download = 'split_pages.zip'; a.click();
+      showToast(`Split into ${totalPages} pages and downloaded as ZIP!`);
+    }
+  } catch(e) { showToast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-cut"></i> Split & Download';
+}
+
+// ==========================================================
+// ORGANISE: SCAN TO PDF
+// ==========================================================
+let scanImages = [];
+document.getElementById('scan-upload').addEventListener('change', e => {
+  scanImages = Array.from(e.target.files);
+  const preview = document.getElementById('scan-preview-list');
+  preview.innerHTML = '';
+  scanImages.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.cssText = 'width:80px;height:100px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border-base);';
+    preview.appendChild(img);
+  });
+  document.getElementById('scan-btn').disabled = scanImages.length === 0;
+  document.getElementById('scan-clear-btn').style.display = scanImages.length ? 'inline-flex' : 'none';
+});
+function clearScan() {
+  scanImages = [];
+  document.getElementById('scan-upload').value = '';
+  document.getElementById('scan-preview-list').innerHTML = '';
+  document.getElementById('scan-btn').disabled = true;
+  document.getElementById('scan-clear-btn').style.display = 'none';
+}
+async function scanToPDF() {
+  if (!scanImages.length) return showToast('Select at least one image.', true);
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Creating PDF...';
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    for (const file of scanImages) {
+      const buffer = await file.arrayBuffer();
+      const type = file.type;
+      let img;
+      if (type === 'image/png') img = await pdfDoc.embedPng(buffer);
+      else img = await pdfDoc.embedJpg(buffer);
+      const { width, height } = img;
+      const page = pdfDoc.addPage([width, height]);
+      page.drawImage(img, {x:0, y:0, width, height});
+    }
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'scanned_document.pdf';
+    a.click();
+    showToast(`${scanImages.length} image(s) saved as PDF!`);
+  } catch(e) { showToast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-file-type-pdf"></i> Create PDF';
+}
+
+// ==========================================================
+// THEME ROPE LOGIC (TAP TO PULL)
+// ==========================================================
+const rope = document.getElementById('rope-container');
+let isAnimating = false;
+
+rope.addEventListener('click', () => {
+  if (isAnimating) return;
+  isAnimating = true;
+  
+  rope.classList.add('pull-animate');
+  
+  // Toggle the theme halfway through the animation (when rope is pulled down)
+  setTimeout(() => {
+    document.body.classList.toggle('light-mode');
+    showToast(document.body.classList.contains('light-mode') ? 'Light mode enabled' : 'Dark mode enabled');
+  }, 240); // 240ms is 40% of 600ms (the bottom of the pull)
+
+  // Remove animation class after it completes
+  setTimeout(() => {
+    rope.classList.remove('pull-animate');
+    isAnimating = false;
+  }, 600);
+});
+
+</script>
+</body>
+</html>
