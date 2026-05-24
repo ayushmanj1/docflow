@@ -29,10 +29,12 @@ from converters import pdf_to_word, word_to_pdf, pdf_to_image, image_to_pdf, off
 app = Flask(__name__)
 CORS(app)  # Allow frontend on any origin to call the API
 
+import tempfile
+
 # Config
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max upload
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), 'uploads')
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'outputs')
+UPLOAD_DIR = os.path.join(tempfile.gettempdir(), 'docflow_uploads')
+OUTPUT_DIR = os.path.join(tempfile.gettempdir(), 'docflow_outputs')
 
 # Create temp directories
 os.makedirs(UPLOAD_DIR, exist_ok=True)
