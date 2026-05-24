@@ -386,9 +386,16 @@ body.light-mode #rope-container { background: #bbb; }
   .nav-right { display: none; }
   .trust-badges { display: none; }
 }
+/* TOUCH RESPONSE (ACTIVE SHRINK & GLOW) */
+button:active, .btn-pri:active, .btn-sec:active, .tab-btn:active, .card:active, .convert-card:active, .card-featured:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.1s ease-out !important;
+}
+/* Ensure mobile taps apply active styles instantly */
+* { -webkit-tap-highlight-color: transparent; }
 </style>
 </head>
-<body>
+<body ontouchstart="">
 
 <!-- THEME ROPE -->
 <div id="rope-container" title="Pull to toggle Dark/Light Mode"></div>
@@ -960,7 +967,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 // ==========================================================
 // NAVIGATION
 // ==========================================================
-function switchMainTab(targetId) {
+function switchMainTab(targetId, skipHistory = false) {
+  if (!skipHistory) history.pushState({ view: 'main', targetId: targetId }, "", `#${targetId}`);
   document.querySelectorAll('.tab-btn').forEach(t => t.classList.toggle('active', t.dataset.target === targetId));
   document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + targetId).classList.add('active');
@@ -971,7 +979,8 @@ function switchMainTab(targetId) {
 let activeConvertFrom = '', activeConvertTo = '';
 let currentFile = null, resultBlob = null, resultFilename = 'download';
 
-function openSpecificConvert(from, to, accept) {
+function openSpecificConvert(from, to, accept, skipHistory = false) {
+  if (!skipHistory) history.pushState({ view: 'convert', from: from, to: to, accept: accept }, "", `#convert-${from}-to-${to}`);
   activeConvertFrom = from; activeConvertTo = to;
   currentFile = null; resultBlob = null;
   document.getElementById('convert-view-grid').classList.remove('active');
@@ -981,7 +990,8 @@ function openSpecificConvert(from, to, accept) {
   document.getElementById('specific-upload').accept = accept;
   resetConvertUI();
 }
-function showConvertGrid() {
+function showConvertGrid(skipHistory = false) {
+  if (!skipHistory) history.pushState({ view: 'main', targetId: 'convert' }, "", `#convert`);
   document.getElementById('convert-view-upload').classList.remove('active');
   document.getElementById('convert-view-grid').classList.add('active');
 }
@@ -997,11 +1007,13 @@ function resetConvertUI() {
   dl.disabled = true; dl.className = 'btn-sec'; dl.innerHTML = '<i class="ti ti-download"></i> Download';
 }
 
-function openUtilTool(toolId) {
+function openUtilTool(toolId, skipHistory = false) {
+  if (!skipHistory) history.pushState({ view: 'util', toolId: toolId }, "", `#util-${toolId}`);
   document.getElementById('utils-view-menu').classList.remove('active');
   document.getElementById('util-' + toolId).classList.add('active');
 }
-function showUtilsMenu() {
+function showUtilsMenu(skipHistory = false) {
+  if (!skipHistory) history.pushState({ view: 'main', targetId: 'utils' }, "", `#utils`);
   document.querySelectorAll('#panel-utils .sub-view').forEach(v => v.classList.remove('active'));
   document.getElementById('utils-view-menu').classList.add('active');
 }
@@ -1837,6 +1849,32 @@ rope.addEventListener('click', () => {
     isAnimating = false;
   }, 600);
 });
+
+// ==========================================================
+// HISTORY & BACK BUTTON LOGIC
+// ==========================================================
+window.addEventListener('popstate', (e) => {
+  if (e.state) {
+    const s = e.state;
+    if (s.view === 'main') {
+      switchMainTab(s.targetId, true);
+      if (s.targetId === 'convert') showConvertGrid(true);
+      if (s.targetId === 'utils') showUtilsMenu(true);
+    } else if (s.view === 'convert') {
+      switchMainTab('convert', true);
+      openSpecificConvert(s.from, s.to, s.accept, true);
+    } else if (s.view === 'util') {
+      switchMainTab('utils', true);
+      openUtilTool(s.toolId, true);
+    }
+  } else {
+    switchMainTab('home', true);
+    showConvertGrid(true);
+    showUtilsMenu(true);
+  }
+});
+// Set initial state on load so first back press works correctly
+history.replaceState({ view: 'main', targetId: 'home' }, "", "#home");
 
 </script>
 </body>
