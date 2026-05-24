@@ -1,12 +1,11 @@
 """
 PDF to Images converter.
-Uses pdf2image (poppler wrapper) to render each page as a high-quality image.
+Uses PyMuPDF (fitz) to render each page as a high-quality image.
 Returns a ZIP file containing all page images.
 """
 import os
 import zipfile
-from pdf2image import convert_from_path
-
+import fitz  # PyMuPDF
 
 def convert(input_path: str, output_path: str, fmt: str = 'png', dpi: int = 200) -> str:
     """
@@ -23,7 +22,7 @@ def convert(input_path: str, output_path: str, fmt: str = 'png', dpi: int = 200)
     
     Raises:
         ValueError: If input file doesn't exist or is not a PDF.
-        RuntimeError: If conversion fails (e.g. poppler not installed).
+        RuntimeError: If conversion fails.
     """
     if not os.path.exists(input_path):
         raise ValueError(f"Input file not found: {input_path}")
@@ -32,45 +31,46 @@ def convert(input_path: str, output_path: str, fmt: str = 'png', dpi: int = 200)
         raise ValueError("Input file must be a PDF.")
     
     output_dir = os.path.dirname(output_path)
+    temp_files = []
     
     try:
-        # pdf2image renders every page to a PIL Image
-        # NOTE: Requires poppler to be installed on the system.
-        #   Windows: choco install poppler  OR download from GitHub
-        #   Linux:   apt-get install poppler-utils
-        #   macOS:   brew install poppler
-        images = convert_from_path(input_path, dpi=dpi, fmt=fmt)
-        
-        if not images:
+        # Open PDF with PyMuPDF
+        doc = fitz.open(input_path)
+        if len(doc) == 0:
             raise RuntimeError("PDF contains no renderable pages.")
+            
+        # 200 DPI is ~2.77 zoom factor since default is 72 DPI
+        zoom = dpi / 72.0
+        mat = fitz.Matrix(zoom, zoom)
         
-        # Save each page image temporarily, then zip them
-        temp_files = []
-        for i, img in enumerate(images):
+        for i in range(len(doc)):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(matrix=mat)
+            
             ext = 'png' if fmt == 'png' else 'jpg'
             img_path = os.path.join(output_dir, f"page_{i + 1}.{ext}")
-            img.save(img_path, fmt.upper())
+            
+            # Save the pixmap directly
+            pix.save(img_path)
             temp_files.append(img_path)
+            
+        doc.close()
         
         # Create ZIP
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for img_path in temp_files:
                 zf.write(img_path, os.path.basename(img_path))
         
+    except Exception as e:
+        raise RuntimeError(f"PDF to Images conversion failed: {str(e)}")
+        
+    finally:
         # Clean up individual images
         for img_path in temp_files:
             try:
                 os.remove(img_path)
             except OSError:
                 pass
-    
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(
-            f"PDF to Images conversion failed: {str(e)}. "
-            "Make sure poppler-utils is installed on this system."
-        )
     
     # Verify output
     if not os.path.exists(output_path):
